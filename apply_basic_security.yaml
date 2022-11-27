@@ -1,0 +1,92 @@
+#Change the host IP addresses or create a group of hosts which can be configured. The host has to be in maintenance mode
+- name: Applying the Security Changes to RHVH hosts
+  hosts: all
+  become: true
+  tasks:
+	#Configure the SSL settings in the ssh serivece
+	- name: replace ssh ciphers
+  	lineinfile:
+    	path: /etc/ssh/ssh_config
+    	regexp: "{{item.From}}"
+    	line: "{{item.To}}"
+    	backrefs: yes
+    	backup: yes
+  	with_items:
+    	- { From: "Ciphers", To: "Ciphers aes128-ctr,aes192-ctr,aes256-ctr" }
+    	- {
+        	From: "MACs",
+        	To: " MACs hmac-sha1,umac-64@openssh.com,hmac-ripemd160",
+      	}
+
+	#change the VDSM settings after this host has to "Enroll the certificates using GUI"
+	- name: Change VDSM conf file
+  	lineinfile:
+    	path: /etc/vdsm/vdsm.conf
+    	regexp: "{{item.From}}"
+    	line: "{{item.To}}"
+    	backrefs: yes
+    	backup: yes
+  	with_items:
+    	- {
+        	From: "ssl_excludes ",
+        	To: "ssl_excludes = OP_NO_TLSv1,OP_NO_TLSv1_1",
+      	}
+
+	- name: Change VDSM conf file2
+  	lineinfile:
+    	path: /etc/vdsm/vdsm.conf
+    	line: "ssl_ciphers = HIGH:!aNULL:!SEED:!MD5:!3DES"
+    	insertafter: ssl.*
+
+	#change libvirt services in the host
+	- name: Change libvirtd conf file
+  	lineinfile:
+    	path: /etc/libvirt/libvirtd.conf
+    	regexp: "tls_priority"
+    	line: "tls_priority= 'SECURE128:-VERS-SSL3.0:-VERS-TLS-ALL:+VERS-TLS1.2'"
+    	backup: yes
+    	backrefs: yes
+
+	#change the SPICE or VNC services in the host
+	- name: Change SPICE conf file
+  	lineinfile:
+    	path: /etc/pki/tls/spice.cnf
+    	regexp: "CipherString "
+    	line: "CipherString = DEFAULT:-RC4:-3DES:-DES"
+    	backup: yes
+    	backrefs: yes
+
+	#Starting the chronyd service
+	- name: Restart Chronyd service
+  	service:
+      	name: chronyd
+      	state: restarted
+      	enabled: true
+
+	#Starting the vdsmd service
+	- name: Restart vdsmd service
+  	service:
+      	name: vdsmd
+      	state: restarted
+      	enabled: true
+
+	#Starting the libvirtd service
+	- name: Restart libvirtd service
+  	service:
+      	name: libvirtd
+      	state: restarted
+      	enabled: true
+
+	#Making sure that the cocipit service is stopped.This is only valid if service is not being used. 
+	- name: Stoping cockpit  service
+  	service:
+      	name: cockpit
+      	state: stopped
+      	enabled: false
+
+	#Starting the sshd service
+	- name: Restart sshd service
+  	service:
+      	name: sshd
+      	state: restarted
+      	enable: true

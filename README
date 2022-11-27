@@ -1,0 +1,21 @@
+This playbook can be used to apply basic security strengthening to an RHV environement by applying changes to RHVH hosts.
+
+This was verified in RHV 4.3
+
+Onen the inventory file and add the IP/IPs of the hosts which need to have the fixes.
+
+Use the below command to execute the plybook
+
+ansible-playbook -i inventory apply_basic_security.yaml --user=root -k -K
+
+Note: The --user option can be  updated to a prefered non root user which has sudo privileges.
+	The playbok was only verified using root user. Manually enter the password for root user for each host when prompted.
+
+The following fixes will be applied when using this simple playbook.
+
+1. Update the sshd configurations to use strong ciphers and hash macs
+2. Update VDSM configurations to use strong hash algorithms and restrict of sing older TLS versions.
+3. Updating spice confs to use storng hashing algorithms
+4. Stop cockpit service to close the port of an unused service. (If cockpit service is being used, this is not needed.)
+
+ 
